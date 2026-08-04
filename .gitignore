@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+
+# Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Database
+data/app.db
+
+# Portable Python Environment
+bin/
+python-*.zip
+get-pip.py
+core/__pycache__/

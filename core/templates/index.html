@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Karaoke Song Manager</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div class="sidebar">
+            <a href="#songs" class="sidebar-item">選曲</a>
+            <a href="#youtube" class="sidebar-item">YouTube取得</a>
+            <a href="#artists" class="sidebar-item">歌手</a>
+            <a href="#excluded" class="sidebar-item">除外動画</a>
+            <a href="#backup" class="sidebar-item">バックアップ</a>
+        </div>
+        <div class="content" id="main-content">
+        <!-- Views will be injected here -->
+    </div>
+    
+    <!-- Side Peak Modal for Song Detail -->
+    <div id="side-peak" class="side-peak" style="display:none;">
+        <div class="side-peak-header">
+            <button onclick="closeSidePeak()">×</button>
+        </div>
+        <div id="side-peak-content" class="side-peak-content"></div>
+    </div>
+    
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
