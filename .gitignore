@@ -19,3 +19,4 @@ bin/
 python-*.zip
 get-pip.py
 core/__pycache__/
+config.json
