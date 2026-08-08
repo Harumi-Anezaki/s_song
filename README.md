@@ -9,11 +9,12 @@ A local web application that helps you manage and curate karaoke songs from YouT
 - Clean Architecture: Backend hidden in `core/` to prevent accidental deletion.
 - Background Server: Starts silently via VBScript without flashing command prompt windows.
 - Notion-like UI: Manage songs, view counts, tags, and DL status in a beautiful SPA interface.
+- Inline Tag Customization: Directly rename tags in the dropdown menus using the 3-dot menu.
+- Spreadsheet-like Experience: Supports cell drag-and-drop fill, and bulk operations.
 
 ## Initial Setup
-1. Copy `.env.example` to `.env`.
-2. Open `.env` and insert your YouTube Data API v3 key (`YOUTUBE_API_KEY=...`).
-3. Double-click **`setup.bat`**. This will automatically download and set up a lightweight, isolated Python environment in the `bin/` directory and install all required libraries. (You only need to do this once).
+1. Edit `config.json` and insert your YouTube Data API v3 key (`YOUTUBE_API_KEY`).
+2. Double-click **`setup.bat`**. This will automatically download and set up a lightweight, isolated Python environment in the `bin/` directory and install all required libraries. (You only need to do this once).
 
 ## How to Run
 Double-click **`run.vbs`**.

@@ -8,21 +8,21 @@ Set objShell = CreateObject("WScript.Shell")
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set objHTTP = CreateObject("MSXML2.XMLHTTP")
 
-' 1. VBSè‡ªèº«ãŒå­˜åœ¨ã™ã‚‹ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã‚’åŸºæº–ã«ã™ã‚‹
+' 1. VBS©g‚ª‘¶İ‚·‚éƒfƒBƒŒƒNƒgƒŠ‚ğŠî€‚É‚·‚é
 strScriptPath = WScript.ScriptFullName
 strParentFolder = objFSO.GetParentFolderName(strScriptPath)
 objShell.CurrentDirectory = strParentFolder
 
 strPythonExe = "bin\pythonw.exe"
 If Not objFSO.FileExists(strPythonExe) Then
-    MsgBox "Pythonç’°å¢ƒãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & "æœ€åˆã« setup.bat ã‚’å®Ÿè¡Œã—ã¦ç’°å¢ƒã‚’æ§‹ç¯‰ã—ã¦ãã ã•ã„ã€‚", 48, "ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—æœªå®Œäº†"
+    MsgBox "PythonŠÂ‹«‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & "Å‰‚É setup.bat ‚ğÀs‚µ‚ÄŠÂ‹«‚ğ\’z‚µ‚Ä‚­‚¾‚³‚¢B", 48, "ƒZƒbƒgƒAƒbƒv–¢Š®—¹"
     WScript.Quit
 End If
 
 strPort = "5000"
 strBrowserUrl = "http://127.0.0.1:" & strPort
 
-' 5. äºŒé‡èµ·å‹•ã‚’æ¤œå‡ºã—ã€ã™ã§ã«ã‚µãƒ¼ãƒãƒ¼ãŒèµ·å‹•ã—ã¦ã„ã‚Œã°ãƒ–ãƒ©ã‚¦ã‚¶ã ã‘ã‚’é–‹ã
+' 5. “ñd‹N“®‚ğŒŸo‚µA‚·‚Å‚ÉƒT[ƒo[‚ª‹N“®‚µ‚Ä‚¢‚ê‚Îƒuƒ‰ƒEƒU‚¾‚¯‚ğŠJ‚­
 isServerRunning = False
 On Error Resume Next
 objHTTP.Open "GET", strBrowserUrl, False
@@ -40,14 +40,14 @@ If isServerRunning Then
     WScript.Quit
 End If
 
-' 2. Pythonãƒãƒƒã‚¯ã‚¨ãƒ³ãƒ‰ã‚’éè¡¨ç¤ºã§èµ·å‹•ã™ã‚‹
+' 2. PythonƒoƒbƒNƒGƒ“ƒh‚ğ”ñ•\¦‚Å‹N“®‚·‚é
 If Not objFSO.FolderExists("data") Then
     objFSO.CreateFolder("data")
 End If
 strCommand = "cmd /c """ & strPythonExe & " core\app.py > data\app.log 2>&1"""
 objShell.Run strCommand, 0, False
 
-' 3. ã‚µãƒ¼ãƒãƒ¼ã®èµ·å‹•å®Œäº†ã‚’å¾…ã¤ (æœ€å¤§10ç§’)
+' 3. ƒT[ƒo[‚Ì‹N“®Š®—¹‚ğ‘Ò‚Â (Å‘å10•b)
 intMaxRetries = 20
 intRetryCount = 0
 isServerRunning = False
@@ -70,9 +70,9 @@ Do While intRetryCount < intMaxRetries
     intRetryCount = intRetryCount + 1
 Loop
 
-' 4. æ—¢å®šãƒ–ãƒ©ã‚¦ã‚¶ã§ã‚¢ãƒ—ãƒªã‚’é–‹ã
+' 4. Šù’èƒuƒ‰ƒEƒU‚ÅƒAƒvƒŠ‚ğŠJ‚­
 If isServerRunning Then
     objShell.Run strBrowserUrl
 Else
-    MsgBox "ã‚µãƒ¼ãƒãƒ¼ã®èµ·å‹•ã«å¤±æ•—ã—ã¾ã—ãŸã€‚" & vbCrLf & "data\app.log ã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚", 16, "èµ·å‹•ã‚¨ãƒ©ãƒ¼"
+    MsgBox "ƒT[ƒo[‚Ì‹N“®‚É¸”s‚µ‚Ü‚µ‚½B" & vbCrLf & "data\app.log ‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B", 16, "‹N“®ƒGƒ‰["
 End If

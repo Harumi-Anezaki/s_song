@@ -120,7 +120,9 @@ def calculate_top70_thresholds(stats: Dict[int, Dict[str, Any]]) -> Dict[int, Di
         thresholds[aid] = {
             'view_threshold': view_threshold,
             'vpd_threshold': vpd_threshold,
-            'song_count': count
+            'song_count': count,
+            'total_views_sum': sum(s['total_views'] for s in st_list),
+            'vpd_sum': sum(s['views_per_day'] for s in st_list)
         }
         
     return thresholds
@@ -141,7 +143,7 @@ def get_view_data(view_name: str) -> List[Dict[str, Any]]:
         
         # 全曲と関連情報を取得
         songs_query = """
-            SELECT s.*, a.name as artist_name, a.rating as artist_rating 
+            SELECT s.*, a.name as artist_name, a.rating as artist_rating, a.singability as artist_singability
             FROM songs s
             LEFT JOIN artists a ON s.main_artist_id = a.id
             WHERE s.is_archived = 0
@@ -201,7 +203,10 @@ def apply_view_filter_and_sort(songs: List[Dict[str, Any]], view_name: str) -> L
     filtered = songs
     
     # Helper functions for sorting
-    def sort_key_default(x):
+    def sort_key_default(x: Any) -> Any:
+        """
+    sort_key_default function.
+    """
         # 好き度降順、歌手名昇順、回/日降順
         rating = x.get('artist_rating') or 0
         name = x.get('artist_name') or ''
@@ -209,48 +214,48 @@ def apply_view_filter_and_sort(songs: List[Dict[str, Any]], view_name: str) -> L
         return (-rating, name, -vpd)
         
     if view_name == 'おはこ':
-        filtered = [s for s in filtered if 'おはこ' in s['tag_b_list'] and not s['is_outdated']]
+        filtered = [s for s in filtered if 'tag_ohako' in s['tag_b_list'] and not s['is_outdated']]
         filtered.sort(key=sort_key_default)
     elif view_name == '高音練習':
-        filtered = [s for s in filtered if '高温練習' in s['tag_b_list'] and not s['is_outdated']]
+        filtered = [s for s in filtered if 'tag_high_pitch' in s['tag_b_list'] and not s['is_outdated']]
         filtered.sort(key=sort_key_default)
     elif view_name == '盛上':
-        filtered = [s for s in filtered if '盛上' in s['tag_b_list']]
+        filtered = [s for s in filtered if 'tag_party' in s['tag_b_list']]
         filtered.sort(key=lambda x: x.get('total_views', 0), reverse=True)
     elif view_name == 'カラオケ':
         filtered = [s for s in filtered if s['tag_a'] == '日本' 
-                    and '盛上' not in s['tag_b_list'] 
-                    and '沖縄' not in s['tag_b_list'] 
-                    and 'HIPHOP' not in s['tag_b_list']
+                    and 'tag_party' not in s['tag_b_list'] 
+                    and 'tag_okinawa' not in s['tag_b_list'] 
+                    and 'tag_hiphop' not in s['tag_b_list']
                     and not s['is_outdated']
                     and s['main_artist_id'] is not None]
         filtered.sort(key=sort_key_default)
     elif view_name == '聞流日本':
         filtered = [s for s in filtered if s['tag_a'] == '日本' 
-                    and '盛上' not in s['tag_b_list'] 
-                    and '沖縄' not in s['tag_b_list'] 
-                    and 'HIPHOP' not in s['tag_b_list']
-                    and '排除' not in s['tag_b_list']
+                    and 'tag_party' not in s['tag_b_list'] 
+                    and 'tag_okinawa' not in s['tag_b_list'] 
+                    and 'tag_hiphop' not in s['tag_b_list']
+                    and 'tag_excluded' not in s['tag_b_list']
                     and not s['is_outdated']
                     and s['main_artist_id'] is not None]
         filtered.sort(key=sort_key_default)
     elif view_name == '聞流海外':
         filtered = [s for s in filtered if s['tag_a'] == '海外' 
-                    and '盛上' not in s['tag_b_list'] 
-                    and '沖縄' not in s['tag_b_list'] 
-                    and 'HIPHOP' not in s['tag_b_list']
-                    and '排除' not in s['tag_b_list']
+                    and 'tag_party' not in s['tag_b_list'] 
+                    and 'tag_okinawa' not in s['tag_b_list'] 
+                    and 'tag_hiphop' not in s['tag_b_list']
+                    and 'tag_excluded' not in s['tag_b_list']
                     and not s['is_outdated']
                     and s['main_artist_id'] is not None]
         filtered.sort(key=sort_key_default)
     elif view_name == 'HIPHOP':
-        filtered = [s for s in filtered if 'HIPHOP' in s['tag_b_list'] and not s['is_outdated']]
+        filtered = [s for s in filtered if 'tag_hiphop' in s['tag_b_list'] and not s['is_outdated']]
         filtered.sort(key=sort_key_default)
     elif view_name == '沖縄':
-        filtered = [s for s in filtered if '沖縄' in s['tag_b_list']]
+        filtered = [s for s in filtered if 'tag_okinawa' in s['tag_b_list']]
         filtered.sort(key=sort_key_default)
     elif view_name == '排除':
-        filtered = [s for s in filtered if '排除' in s['tag_b_list']]
+        filtered = [s for s in filtered if 'tag_excluded' in s['tag_b_list']]
         filtered.sort(key=sort_key_default)
     elif view_name == '時代遅れ':
         filtered = [s for s in filtered if s['is_outdated']]
@@ -262,3 +267,192 @@ def apply_view_filter_and_sort(songs: List[Dict[str, Any]], view_name: str) -> L
         pass # All non-archived songs
         
     return filtered
+
+def get_database_artists() -> List[Dict[str, Any]]:
+    """
+    Notion風UI用: 歌手_原本ビューに必要なすべての情報（ロールアップ含む）を取得します。
+    """
+    with get_db() as conn:
+        stats = calculate_song_stats(conn)
+        thresholds = calculate_top70_thresholds(stats)
+        
+        artists_rows = conn.execute("SELECT * FROM artists").fetchall()
+        
+        songs_rows = conn.execute("SELECT id, title, main_artist_id FROM songs WHERE is_archived = 0").fetchall()
+        main_songs_map = {}
+        for s in songs_rows:
+            aid = s['main_artist_id']
+            if aid not in main_songs_map:
+                main_songs_map[aid] = []
+            main_songs_map[aid].append(dict(s))
+            
+        sub_songs_rows = conn.execute("""
+            SELECT ssa.artist_id, s.id, s.title 
+            FROM song_sub_artists ssa
+            JOIN songs s ON ssa.song_id = s.id
+            WHERE s.is_archived = 0
+        """).fetchall()
+        sub_songs_map = {}
+        for r in sub_songs_rows:
+            aid = r['artist_id']
+            if aid not in sub_songs_map:
+                sub_songs_map[aid] = []
+            sub_songs_map[aid].append({'id': r['id'], 'title': r['title']})
+            
+        results = []
+        for row in artists_rows:
+            a = dict(row)
+            aid = a['id']
+            
+            m_songs = main_songs_map.get(aid, [])
+            m_songs_ids = [{'id': s['id'], 'title': s['title']} for s in m_songs]
+            
+            s_songs = sub_songs_map.get(aid, [])
+            
+            views_list = []
+            vpd_list = []
+            for s in m_songs:
+                st = stats.get(s['id'], {})
+                if st.get('effective_base_date'):
+                    views_list.append(st.get('total_views', 0))
+                    vpd_list.append(st.get('views_per_day', 0.0))
+                    
+            th = thresholds.get(aid, {})
+            
+            a['main_songs'] = m_songs_ids
+            a['sub_songs'] = s_songs
+            a['views_list'] = views_list
+            a['vpd_list'] = vpd_list
+            a['view_threshold'] = th.get('view_threshold')
+            a['vpd_threshold'] = th.get('vpd_threshold')
+            a['total_views_calc'] = sum(views_list)
+            a['vpd_calc'] = sum(vpd_list)
+            
+            try:
+                extra_props = json.loads(a.get('extra_properties', '{}'))
+                for k, v in extra_props.items():
+                    a[k] = v
+            except:
+                pass
+            
+            results.append(a)
+            
+        return results
+
+def get_database_songs() -> List[Dict[str, Any]]:
+    """
+    Notion風UI用: 曲_原本ビューに必要なすべての情報を取得します。
+    """
+    with get_db() as conn:
+        stats = calculate_song_stats(conn)
+        thresholds = calculate_top70_thresholds(stats)
+        
+        songs_query = """
+            SELECT s.*, a.name as artist_name, a.rating as artist_rating, a.singability as artist_singability
+            FROM songs s
+            LEFT JOIN artists a ON s.main_artist_id = a.id
+            WHERE s.is_archived = 0
+        """
+        songs_rows = conn.execute(songs_query).fetchall()
+        
+        sub_artists_query = """
+            SELECT ssa.song_id, a.id, a.name 
+            FROM song_sub_artists ssa
+            JOIN artists a ON ssa.artist_id = a.id
+        """
+        sub_artists_rows = conn.execute(sub_artists_query).fetchall()
+        sub_artists_map = {}
+        for r in sub_artists_rows:
+            sid = r['song_id']
+            if sid not in sub_artists_map:
+                sub_artists_map[sid] = []
+            sub_artists_map[sid].append({'id': r['id'], 'name': r['name']})
+            
+        song_tags_query = """
+            SELECT st.song_id, t.id
+            FROM song_tags st
+            JOIN tag_definitions t ON st.tag_id = t.id
+            WHERE t.is_active = 1
+            ORDER BY t.display_order ASC
+        """
+        try:
+            song_tags_rows = conn.execute(song_tags_query).fetchall()
+        except sqlite3.OperationalError:
+            song_tags_rows = []
+            
+        song_tags_map = {}
+        for r in song_tags_rows:
+            sid = r['song_id']
+            if sid not in song_tags_map:
+                song_tags_map[sid] = []
+            song_tags_map[sid].append(r['id'])
+            
+        videos_query = """
+            SELECT song_id, url, view_count, status
+            FROM videos
+            WHERE status != 'excluded'
+        """
+        videos_rows = conn.execute(videos_query).fetchall()
+        videos_map = {}
+        for v in videos_rows:
+            sid = v['song_id']
+            if sid not in videos_map:
+                videos_map[sid] = []
+            videos_map[sid].append(dict(v))
+            
+        results = []
+        for row in songs_rows:
+            song_dict = dict(row)
+            sid = song_dict['id']
+            st = stats.get(sid, {})
+            aid = song_dict['main_artist_id']
+            
+            song_dict['total_views'] = st.get('total_views', 0)
+            song_dict['views_per_day'] = st.get('views_per_day', 0.0)
+            song_dict['effective_base_date'] = st.get('effective_base_date')
+            
+            is_outdated = False
+            if aid in thresholds:
+                th = thresholds[aid]
+                song_dict['view_threshold'] = th.get('view_threshold')
+                song_dict['vpd_threshold'] = th.get('vpd_threshold')
+                song_dict['artist_song_count'] = th.get('song_count', 0)
+                song_dict['artist_total_views'] = th.get('total_views_sum', 0)
+                song_dict['artist_vpd'] = th.get('vpd_sum', 0.0)
+                
+                if th.get('view_threshold') is not None and song_dict['total_views'] < th['view_threshold'] and song_dict['views_per_day'] < th['vpd_threshold']:
+                    is_outdated = True
+            else:
+                song_dict['view_threshold'] = None
+                song_dict['vpd_threshold'] = None
+                song_dict['artist_song_count'] = 0
+                song_dict['artist_total_views'] = 0
+                song_dict['artist_vpd'] = 0.0
+                
+            song_dict['is_outdated'] = is_outdated
+            # Add artist stats natively so UI schema can reference them
+            song_dict['artist_singability'] = song_dict.get('artist_singability')
+            song_dict['tag_b_list'] = song_tags_map.get(sid, [])
+                
+            song_dict['sub_artists'] = sub_artists_map.get(sid, [])
+            
+            v_list = videos_map.get(sid, [])
+            song_dict['video_count'] = len(v_list)
+            
+            primary_url = None
+            if v_list:
+                v_list_sorted = sorted(v_list, key=lambda v: v.get('view_count', 0), reverse=True)
+                primary_url = "\n".join([v['url'] for v in v_list_sorted if v.get('url')])
+                
+            song_dict['primary_url'] = primary_url
+            
+            try:
+                extra_props = json.loads(song_dict.get('extra_properties', '{}'))
+                for k, v in extra_props.items():
+                    song_dict[k] = v
+            except:
+                pass
+            
+            results.append(song_dict)
+            
+        return results

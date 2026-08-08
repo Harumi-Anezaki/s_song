@@ -4,18 +4,46 @@
     <meta charset="UTF-8">
     <title>Karaoke Song Manager</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/notion.css">
 </head>
 <body>
     <div id="app">
         <div class="sidebar">
-            <a href="#songs" class="sidebar-item">選曲</a>
-            <a href="#youtube" class="sidebar-item">YouTube取得</a>
-            <a href="#artists" class="sidebar-item">歌手</a>
-            <a href="#excluded" class="sidebar-item">除外動画</a>
-            <a href="#backup" class="sidebar-item">バックアップ</a>
+            <a href="#youtube" class="sidebar-item">YouTube検索</a>
+            <a href="#database" class="sidebar-item">リンクドDB</a>
+            <a href="#dbviewer" class="sidebar-item">DB原本</a>
+            <a href="#backup" class="sidebar-item">設定・管理</a>
         </div>
-        <div class="content" id="main-content">
-        <!-- Views will be injected here -->
+        <div class="content" id="view-content">
+            <!-- Views will be injected here -->
+        </div>
+        
+        <div id="notion-root" style="display: none; width: 100%; height: 100vh; flex-direction: column;">
+            <!-- Notion UI will be rendered here -->
+        </div>
+    </div>
+
+    <!-- Registration Modal -->
+    <div id="reg-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h2 id="reg-modal-title">動画の登録</h2>
+            <div class="form-group" id="reg-title-group">
+                <label>曲名</label>
+                <input type="text" id="reg-song-title">
+            </div>
+            <div class="form-group">
+                <label>メイン歌手</label>
+                <select id="reg-main-artist"></select>
+            </div>
+            <div class="form-group">
+                <label>サブ歌手 (Ctrlキーで複数選択)</label>
+                <select id="reg-sub-artists" multiple style="height: 100px;"></select>
+            </div>
+            <div style="margin-top: 16px; display: flex; gap: 8px; justify-content: flex-end;">
+                <button class="btn" onclick="closeRegModal()">キャンセル</button>
+                <button class="btn btn-primary" id="reg-modal-submit">登録する</button>
+            </div>
+        </div>
     </div>
     
     <!-- Side Peak Modal for Song Detail -->
@@ -27,5 +55,6 @@
     </div>
     
     <script src="/static/js/app.js"></script>
+    <script src="/static/js/notion_ui.js"></script>
 </body>
 </html>

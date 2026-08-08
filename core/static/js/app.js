@@ -11,11 +11,11 @@ const views = {
 };
 
 function initRouter() {
-    const hash = window.location.hash.replace('#', '') || 'songs';
+    const hash = window.location.hash.replace('#', '') || 'database';
     navigate(hash);
 
     window.addEventListener('hashchange', () => {
-        const newHash = window.location.hash.replace('#', '') || 'songs';
+        const newHash = window.location.hash.replace('#', '') || 'database';
         navigate(newHash);
     });
 }
@@ -29,10 +29,27 @@ function navigate(viewName) {
     });
 
     const mainContent = document.getElementById('view-content');
-    if (views[viewName]) {
-        views[viewName](mainContent);
+    
+    // Notion UI routing
+    if (viewName === 'database' || viewName === 'dbviewer' || (window.databaseViews && window.databaseViews[viewName])) {
+        if(mainContent) mainContent.style.display = 'none';
+        const notionRoot = document.getElementById('notion-root');
+        if (notionRoot) notionRoot.style.display = 'flex';
+        let newMode = (viewName === 'dbviewer') ? 'original' : 'linked';
+        window.notionUIMode = newMode;
+        if (typeof initNotionUI === 'function') {
+            initNotionUI(newMode);
+        }
     } else {
-        mainContent.innerHTML = '<h1>Not Found</h1>';
+        const notionRoot = document.getElementById('notion-root');
+        if (notionRoot) notionRoot.style.display = 'none';
+        if(mainContent) mainContent.style.display = 'block';
+        
+        if (views[viewName]) {
+            views[viewName](mainContent);
+        } else {
+            if(mainContent) mainContent.innerHTML = '<h1>Not Found</h1>';
+        }
     }
 }
 
@@ -61,16 +78,16 @@ function renderSongsView(container) {
 
 window.changeSongsView = function(viewName) {
     currentView = viewName;
-    navigate('songs'); // re-render
+    navigate('database'); // re-render
 };
 
 window.loadSongsView = async function(viewName) {
     try {
-        const res = await fetch(\`/api/views/\${viewName}\`);
+        const res = await fetch(`/api/views/${viewName}`);
         const data = await res.json();
         
         if(data.error) {
-            document.getElementById('songs-list').innerHTML = \`<span style="color:red">\${data.error}</span>\`;
+            document.getElementById('songs-list').innerHTML = `<span style="color:red">${data.error}</span>`;
             return;
         }
         
@@ -79,7 +96,7 @@ window.loadSongsView = async function(viewName) {
             return;
         }
 
-        let html = \`<table>
+        let html = `<table>
             <thead>
                 <tr>
                     <th>曲名</th>
@@ -91,20 +108,20 @@ window.loadSongsView = async function(viewName) {
                     <th>時代遅れ</th>
                 </tr>
             </thead>
-            <tbody>\`;
+            <tbody>`;
             
         data.forEach(s => {
             const vpd = typeof s.views_per_day === 'number' ? s.views_per_day.toFixed(2) : s.views_per_day;
             const outdated = s.is_outdated ? '⚠️' : '';
-            html += \`<tr style="cursor:pointer;" onclick="openSongDetail(\${s.id})">
-                <td>\${s.title}</td>
-                <td>\${s.artist_name || ''}</td>
-                <td>\${s.total_views.toLocaleString()}</td>
-                <td>\${vpd}</td>
-                <td>\${s.tag_a || ''}</td>
-                <td>\${s.dl_status}</td>
-                <td>\${outdated}</td>
-            </tr>\`;
+            html += `<tr style="cursor:pointer;" onclick="openSongDetail(${s.id})">
+                <td>${s.title}</td>
+                <td>${s.artist_name || ''}</td>
+                <td>${s.total_views.toLocaleString()}</td>
+                <td>${vpd}</td>
+                <td>${s.tag_a || ''}</td>
+                <td>${s.dl_status}</td>
+                <td>${outdated}</td>
+            </tr>`;
         });
         html += '</tbody></table>';
         document.getElementById('songs-list').innerHTML = html;
@@ -301,17 +318,17 @@ window.loadArtists = async function() {
         const res = await fetch('/api/artists');
         const artists = await res.json();
         
-        let html = \`<table><thead><tr><th>ID</th><th>歌手名</th><th>ふりがな</th><th>好き度</th><th>メモ</th></tr></thead><tbody>\`;
+        let html = `<table><thead><tr><th>ID</th><th>歌手名</th><th>ふりがな</th><th>好き度</th><th>メモ</th></tr></thead><tbody>`;
         artists.forEach(a => {
-            html += \`<tr>
-                <td>\${a.id}</td>
-                <td>\${a.name}</td>
-                <td>\${a.phonetic_name || ''}</td>
-                <td>\${a.rating}</td>
-                <td>\${a.memo || ''}</td>
-            </tr>\`;
+            html += `<tr>
+                <td>${a.id}</td>
+                <td>${a.name}</td>
+                <td>${a.phonetic_name || ''}</td>
+                <td>${a.rating}</td>
+                <td>${a.memo || ''}</td>
+            </tr>`;
         });
-        html += \`</tbody></table>\`;
+        html += `</tbody></table>`;
         document.getElementById('artists-list').innerHTML = html;
     } catch(e) {
         document.getElementById('artists-list').innerHTML = 'エラー: ' + e;
@@ -383,7 +400,7 @@ window.exportData = async function() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0,19);
-            a.download = \`karaoke_backup_\${dateStr}.json\`;
+            a.download = `karaoke_backup_${dateStr}.json`;
             a.href = url;
             a.click();
         } else {
@@ -434,28 +451,28 @@ window.openSongDetail = async function(songId) {
     peak.style.display = 'flex';
     document.getElementById('side-peak-content').innerHTML = '読み込み中...';
     try {
-        const res = await fetch(\`/api/songs/\${songId}\`);
+        const res = await fetch(`/api/songs/${songId}`);
         const data = await res.json();
         
-        let html = \`<h2>\${data.song.title}</h2>\`;
-        html += \`<p>歌手: \${data.main_artist ? data.main_artist.name : '未設定'}</p>\`;
-        html += \`<p>合計再生数: \${data.song.total_views || 0}</p>\`;
-        html += \`<p>DL状況: 
+        let html = `<h2>${data.song.title}</h2>`;
+        html += `<p>歌手: ${data.main_artist ? data.main_artist.name : '未設定'}</p>`;
+        html += `<p>合計再生数: ${data.song.total_views || 0}</p>`;
+        html += `<p>DL状況: 
             <select id="song-dl-status">
-                <option value="未DL" \${data.song.dl_status === '未DL' ? 'selected' : ''}>未DL</option>
-                <option value="DL済" \${data.song.dl_status === 'DL済' ? 'selected' : ''}>DL済</option>
-                <option value="不要" \${data.song.dl_status === '不要' ? 'selected' : ''}>不要</option>
+                <option value="未DL" ${data.song.dl_status === '未DL' ? 'selected' : ''}>未DL</option>
+                <option value="DL済" ${data.song.dl_status === 'DL済' ? 'selected' : ''}>DL済</option>
+                <option value="不要" ${data.song.dl_status === '不要' ? 'selected' : ''}>不要</option>
             </select>
-        </p>\`;
-        html += \`<h3>動画</h3><ul>\`;
+        </p>`;
+        html += `<h3>動画</h3><ul>`;
         data.videos.forEach(v => {
-            html += \`<li>\${v.title} (\${v.view_count}回)</li>\`;
+            html += `<li>${v.title} (${v.view_count}回)</li>`;
         });
-        html += \`</ul>\`;
-        html += \`<div style="margin-top:16px;">
-            <button class="btn btn-primary" onclick="saveSongDetail(\${songId})">保存</button>
+        html += `</ul>`;
+        html += `<div style="margin-top:16px;">
+            <button class="btn btn-primary" onclick="saveSongDetail(${songId})">保存</button>
             <button class="btn" onclick="closeSidePeak()">閉じる</button>
-        </div>\`;
+        </div>`;
         
         document.getElementById('side-peak-content').innerHTML = html;
     } catch(e) {
@@ -466,7 +483,7 @@ window.openSongDetail = async function(songId) {
 window.saveSongDetail = async function(songId) {
     const dlStatus = document.getElementById('song-dl-status').value;
     try {
-        const res = await fetch(\`/api/songs/\${songId}\`, {
+        const res = await fetch(`/api/songs/${songId}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ dl_status: dlStatus })

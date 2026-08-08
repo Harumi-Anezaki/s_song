@@ -1,8 +1,12 @@
+from typing import Any
 import json
 import datetime
 from database import get_db
 
-def export_to_json():
+def export_to_json() -> Any:
+    """
+    export_to_json function.
+    """
     with get_db() as conn:
         data = {
             'version': '1.0',
@@ -14,24 +18,35 @@ def export_to_json():
             'excluded_videos': [dict(row) for row in conn.execute("SELECT * FROM excluded_videos").fetchall()],
             'search_history': [dict(row) for row in conn.execute("SELECT * FROM search_history").fetchall()],
             'settings': [dict(row) for row in conn.execute("SELECT * FROM settings").fetchall()],
+            'tag_definitions': [dict(row) for row in conn.execute("SELECT * FROM tag_definitions").fetchall()],
+            'song_tags': [dict(row) for row in conn.execute("SELECT * FROM song_tags").fetchall()],
         }
         return json.dumps(data, ensure_ascii=False, indent=2)
 
-def import_from_json(json_str):
+def import_from_json(json_str: Any) -> Any:
+    """
+    import_from_json function.
+    """
     data = json.loads(json_str)
     
     with get_db() as conn:
         try:
             # Delete in reverse dependency order
+            conn.execute("DELETE FROM song_tags")
             conn.execute("DELETE FROM song_sub_artists")
             conn.execute("DELETE FROM videos")
             conn.execute("DELETE FROM excluded_videos")
             conn.execute("DELETE FROM search_history")
             conn.execute("DELETE FROM songs")
+            conn.execute("DELETE FROM tag_definitions")
             conn.execute("DELETE FROM artists")
             conn.execute("DELETE FROM settings")
             
             # Insert parents first
+            for t in data.get('tag_definitions', []):
+                conn.execute("INSERT INTO tag_definitions (id, name, color_key, background_color, text_color, display_order, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                             (t['id'], t['name'], t['color_key'], t['background_color'], t['text_color'], t['display_order'], t['is_active'], t['created_at'], t['updated_at']))
+
             for a in data.get('artists', []):
                 conn.execute("INSERT INTO artists (id, name, phonetic_name, rating, memo, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
                              (a['id'], a['name'], a['phonetic_name'], a['rating'], a['memo'], a['created_at'], a['updated_at']))
@@ -54,6 +69,9 @@ def import_from_json(json_str):
             for sh in data.get('search_history', []):
                 conn.execute("INSERT INTO search_history (id, keyword, min_views, created_at) VALUES (?, ?, ?, ?)",
                              (sh['id'], sh['keyword'], sh['min_views'], sh['created_at']))
+                             
+            for st in data.get('song_tags', []):
+                conn.execute("INSERT INTO song_tags (song_id, tag_id, created_at) VALUES (?, ?, ?)", (st['song_id'], st['tag_id'], st['created_at']))
                              
             for setting in data.get('settings', []):
                 conn.execute("INSERT INTO settings (key, value) VALUES (?, ?)", (setting['key'], setting['value']))
