@@ -1,22 +1,24 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.env
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Environment
-.venv/
-venv/
-ENV/
-env/
+node_modules
+dist
+dist-ssr
+*.local
 
-# Database
-data/app.db
-
-# Portable Python Environment
-bin/
-python-*.zip
-get-pip.py
-core/__pycache__/
-config.json
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

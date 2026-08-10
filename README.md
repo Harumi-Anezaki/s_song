@@ -1,25 +1,32 @@
-# Karaoke Song Manager
+# React + TypeScript + Vite
 
-[日本語 (Japanese)](docs/README_ja.md) | [中文 (Chinese)](docs/README_zh.md)
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
-A local web application that helps you manage and curate karaoke songs from YouTube videos, complete with a self-contained portable Python environment.
+Currently, two official plugins are available:
 
-## Features
-- Fully portable: Runs on Windows without installing Python globally.
-- Clean Architecture: Backend hidden in `core/` to prevent accidental deletion.
-- Background Server: Starts silently via VBScript without flashing command prompt windows.
-- Notion-like UI: Manage songs, view counts, tags, and DL status in a beautiful SPA interface.
-- Inline Tag Customization: Directly rename tags in the dropdown menus using the 3-dot menu.
-- Spreadsheet-like Experience: Supports cell drag-and-drop fill, and bulk operations.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Initial Setup
-1. Edit `config.json` and insert your YouTube Data API v3 key (`YOUTUBE_API_KEY`).
-2. Double-click **`setup.bat`**. This will automatically download and set up a lightweight, isolated Python environment in the `bin/` directory and install all required libraries. (You only need to do this once).
+## React Compiler
 
-## How to Run
-Double-click **`run.vbs`**.
-- It will silently start the server in the background and open the app in your default browser at `http://127.0.0.1:5000`.
-- To safely shut down the server, go to the "設定とバックアップ" (Settings & Backup) tab in the app and click the "サーバーを終了する" (Shutdown Server) button.
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Uninstallation
-Simply delete the entire application folder. It does not modify system registries or global environment variables.
+## Expanding the Oxlint configuration
+
+If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+
+```json
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc"],
+  "options": {
+    "typeAware": true
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+  }
+}
+```
+
+See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
